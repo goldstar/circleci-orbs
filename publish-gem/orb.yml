@@ -21,6 +21,10 @@ commands:
             : "${PACKAGECLOUD_TOKEN?The PACKAGECLOUD_TOKEN must be set as an environment variable}"
             echo "Checking for the packagecloud API token"
   test-gem:
+    parameters:
+      test-command:
+        description: The command to run the Gem's test
+        type: string
     steps:
       - checkout
       - restore_cache:
@@ -37,7 +41,7 @@ commands:
             - vendor/bundle
       - run:
           name: Run Rspec Tests
-          command: bundle exec rspec -r rspec_junit_formatter --format=documentation --format RspecJunitFormatter -o test-reports/rspec/results.xml
+          command: <<parameters.test-command>>
       - store_test_results:
           path: test-reports
   build-and-deploy-gem:
@@ -64,11 +68,16 @@ jobs:
       ruby-version:
         type: string
         default: 2.5.5
+      test-command:
+        description: The command to run the Gem's test
+        type: string
+        default: bundle exec rspec -r rspec_junit_formatter --format=documentation --format RspecJunitFormatter -o test-reports/rspec/results.xml
     executor:
       name: ruby
       version: <<parameters.ruby-version>>
     steps:
-      - test-gem
+      - test-gem:
+          test-command: <<parameters.test-command>>
   build-and-deploy:
     parameters:
       packagecloud-repo:
