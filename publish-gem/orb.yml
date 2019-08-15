@@ -1,0 +1,108 @@
+version: 2.1
+
+description: |
+  Build arbitrary ruby gems and push to packagecloud.io
+
+executors:
+  ruby:
+    parameters:
+      version:
+        type: string
+    docker:
+      - image: circleci/ruby:<<parameters.version>>
+
+commands:
+  token-check:
+    description: "Check environment for packagecloud token"
+    steps:
+      - run:
+          name: Check Packagecloud API Token
+          command: |
+            : "${PACKAGECLOUD_TOKEN?The PACKAGECLOUD_TOKEN must be set as an environment variable}"
+            echo "Checking for the packagecloud API token"
+  test-gem:
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore Gem Dependencies from Cache
+          keys:
+            - gem-deps-{{ checksum "Gemfile.lock" }}
+      - run:
+          name: Install Test Dependencies
+          command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=2 --retry=3
+      - save_cache:
+          name: Save Gem Dependencies to Cache
+          key: gem-deps-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
+      - run:
+          name: Run Rspec Tests
+          command: bundle exec rspec -r rspec_junit_formatter --format=documentation --format RspecJunitFormatter -o test-reports/rspec/results.xml
+      - store_test_results:
+          path: test-reports
+  build-and-deploy-gem:
+    parameters:
+      packagecloud-repo:
+        description:
+          "Target Packagecloud repo to upload this gem to"
+        type: string
+    steps:
+      - checkout
+      - run:
+          name: Install packagecloud CLI
+          command: gem install package_cloud
+      - run:
+          name: Build Gem
+          command: gem build *.gemspec
+      - run:
+          name: Upload Gem to packagecloud
+          command: package_cloud push <<parameters.packagecloud-repo>> *.gem
+
+jobs:
+  test:
+    parameters:
+      ruby-version:
+        type: string
+        default: 2.5.5
+    executor:
+      name: ruby
+      version: <<parameters.ruby-version>>
+    steps:
+      - test-gem
+  build-and-deploy:
+    parameters:
+      packagecloud-repo:
+        description:
+          "Target Packagecloud repo to upload this gem to"
+        type: string
+      ruby-version:
+        type: string
+        default: 2.5.5
+    executor:
+      name: ruby
+      version: <<parameters.ruby-version>>
+    steps:
+      - token-check
+      - build-and-deploy-gem:
+          packagecloud-repo: <<parameters.packagecloud-repo>>
+
+examples:
+  deploy-gem-file:
+    description: |
+      Use this orb to build ruby gems and deploy them to packagecloud
+      You will have to set PACKAGECLOUD_TOKEN in your environment
+    usage:
+      version: 2.1
+      orbs:
+        gem: goldstar/publish-gem@1.0.0
+      workflows:
+        main:
+          jobs:
+            - gem/test
+            - gem/build-and-deploy:
+                requires:
+                  - gem/test
+                filters:
+                  branches:
+                    only: master
+                packagecloud-repo: foo/bar
