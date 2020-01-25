@@ -25,12 +25,18 @@ commands:
       test-command:
         description: The command to run the Gem's test
         type: string
+      bundle-version:
+        description: Bundler version to use
+        type: string
     steps:
       - checkout
       - restore_cache:
           name: Restore Gem Dependencies from Cache
           keys:
             - gem-deps-{{ checksum "Gemfile.lock" }}
+      - run:
+          name: Install bundler
+          command: gem install bundler -v "~> <<parameters.bundle-version>>"
       - run:
           name: Install Test Dependencies
           command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=2 --retry=3
@@ -72,12 +78,17 @@ jobs:
         description: The command to run the Gem's test
         type: string
         default: bundle exec rspec -r rspec_junit_formatter --format=documentation --format RspecJunitFormatter -o test-reports/rspec/results.xml
+      bundle-version:
+        description: Bundler version to use
+        type: string
+        default: 1.17
     executor:
       name: ruby
       version: <<parameters.ruby-version>>
     steps:
       - test-gem:
           test-command: <<parameters.test-command>>
+          bundle-version: <<parameters.bundle-version>>
   build-and-deploy:
     parameters:
       packagecloud-repo:
