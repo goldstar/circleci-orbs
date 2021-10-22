@@ -10,7 +10,7 @@ executors:
         type: string
     docker:
       - image: circleci/ruby:<<parameters.version>>
-
+      - image: circleci/redis:5.0.6-alpine
 commands:
   token-check:
     description: "Check environment for packagecloud token"
