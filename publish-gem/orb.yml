@@ -73,7 +73,7 @@ jobs:
     parameters:
       ruby-version:
         type: string
-        default: 2.5.5
+        default: 2.6.7
       test-command:
         description: The command to run the Gem's test
         type: string
@@ -81,7 +81,7 @@ jobs:
       bundle-version:
         description: Bundler version to use
         type: string
-        default: "1.17"
+        default: "1.17.2"
     executor:
       name: ruby
       version: <<parameters.ruby-version>>
@@ -97,7 +97,7 @@ jobs:
         type: string
       ruby-version:
         type: string
-        default: 2.5.5
+        default: 2.6.7
     executor:
       name: ruby
       version: <<parameters.ruby-version>>
@@ -114,7 +114,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        gem: goldstar/publish-gem@1.0.0
+        gem: goldstar/publish-gem@1.0.3
       workflows:
         main:
           jobs:
