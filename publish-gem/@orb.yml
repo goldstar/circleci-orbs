@@ -6,11 +6,23 @@ description: |
 executors:
   ruby:
     parameters:
-      version:
+      exec_ruby_version:
         type: string
+        default: 2.6.7
     docker:
-      - image: circleci/ruby:<<parameters.version>>
-      - image: circleci/redis:5.0.6-alpine
+      - image: circleci/ruby:<<parameters.exec_ruby_version>>
+  ruby_redis:
+    parameters:
+      exec_ruby_version:
+        type: string
+        default: 2.6.7
+      exec_redis_version:
+        type: string
+        default: 5.0.6-alpine
+    docker:
+      - image: circleci/ruby:<<parameters.exec_ruby_version>>
+      - image: circleci/redis:<<parameters.exec_redis_version>>
+
 commands:
   token-check:
     description: "Check environment for packagecloud token"
@@ -71,9 +83,9 @@ commands:
 jobs:
   test:
     parameters:
-      ruby-version:
-        type: string
-        default: 2.6.7
+      executor_type:
+        type: executor
+        default: ruby
       test-command:
         description: The command to run the Gem's test
         type: string
@@ -82,9 +94,7 @@ jobs:
         description: Bundler version to use
         type: string
         default: "1.17.2"
-    executor:
-      name: ruby
-      version: <<parameters.ruby-version>>
+    executor: << parameters.executor_type >>
     steps:
       - test-gem:
           test-command: <<parameters.test-command>>
@@ -95,12 +105,10 @@ jobs:
         description:
           "Target Packagecloud repo to upload this gem to"
         type: string
-      ruby-version:
-        type: string
-        default: 2.6.7
-    executor:
-      name: ruby
-      version: <<parameters.ruby-version>>
+      executor_type:
+        type: executor
+        default: ruby
+    executor: << parameters.executor_type >>
     steps:
       - token-check
       - build-and-deploy-gem:
@@ -114,12 +122,19 @@ examples:
     usage:
       version: 2.1
       orbs:
-        gem: goldstar/publish-gem@1.0.3
+        gem: goldstar/publish-gem@1.2.2
       workflows:
         main:
           jobs:
-            - gem/test
+            - gem/test:
+                executor_type:
+                  name: gem/ruby_redis
+                  exec_ruby_version: 2.6.6
+                  exec_redis_version: 5.0.4
             - gem/build-and-deploy:
+                executor_type:
+                  name: gem/ruby
+                  exec_ruby_version: 2.6.6
                 requires:
                   - gem/test
                 filters:
