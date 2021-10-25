@@ -124,7 +124,7 @@ examples:
     usage:
       version: 2.1
       orbs:
-        gem: goldstar/publish-gem@1.0.3
+        gem: goldstar/publish-gem@1.1.1
       workflows:
         main:
           jobs:
